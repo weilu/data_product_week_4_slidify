@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Singapore Public Housing Resale Price Prediction</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Singapore Public Housing Resale Price Prediction">
+  <meta name="author" content="Wei Lu">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Singapore Public Housing Resale Price Prediction</h1>
+    <h2></h2>
+    <p>Wei Lu<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Objectives</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Given Singapore&#39;s past HDB resale data, we want to predict the resale price for a given set of requirements like flat type, age, floor, neighbourhood.</p>
+
+<h2>Data Preparation</h2>
+
+<p>First we download data from the data source: <a href="https://data.gov.sg/dataset/resale-flat-prices">https://data.gov.sg/dataset/resale-flat-prices</a>, uzip the data and load it into R. The data is already very well formated. We need to convert the <code>month</code> column into <code>yearmon</code> class for timeseries prediction, and combine <code>block</code> and <code>street_name</code> into a column named <code>address</code> for filtering:</p>
+
+<pre><code class="r">library(zoo)
+hdbData &lt;- read.csv(&quot;../resale-flat-prices/resale-flat-prices-based-on-registration-date-from-march-2012-onwards.csv&quot;)
+hdbData$month &lt;- as.yearmon(hdbData$month)
+hdbData &lt;- within(hdbData, address &lt;- as.factor(paste(block, street_name)))
+hdbData &lt;- hdbData[, -which(names(hdbData) %in% c(&#39;block&#39;, &#39;street_name&#39;))]
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Projection</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">library(plyr); library(reshape2); library(xts); library(forecast)
+id_vars = colnames(hdbData)[colnames(hdbData) != &#39;resale_price&#39;]
+datamelt &lt;- melt(hdbData, value.name=&quot;resale_price&quot;, id.vars=id_vars)
+datadcast &lt;- dcast(datamelt, month ~ variable, mean)
+datats &lt;- xts(datadcast$resale_price, order.by=datadcast$month)
+
+projection = forecast(ets(datats), 6)
+print(projection)
+</code></pre>
+
+<pre><code>##       Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+## Mar 5       438173.2 432581.7 443764.7 429621.7 446724.6
+## Apr 5       438548.2 431759.6 445336.8 428165.9 448930.4
+## May 5       438882.5 430665.2 447099.7 426315.3 451449.7
+## Jun 5       439180.5 429387.8 448973.2 424203.8 454157.2
+## Jul 5       439446.2 427988.4 450904.0 421923.0 456969.4
+## Aug 5       439683.1 426508.3 452857.8 419534.0 459832.1
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>Plot Projection</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">plot(projection, ylab=&#39;Resale price (SGD)&#39;, xlab=&quot;Years + 1&quot;)
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Drill-down</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Previous plot gives us a simple aggregated projection of the whole Singapore resale market. Certain buyers may already have a potential neiborhood and/or a flat type in mind. This Shiny App provides answers with interactivity: <a href="https://weilu.shinyapps.io/data_product_week4/">https://weilu.shinyapps.io/data_product_week4/</a></p>
+
+<p><img src="./screenshot.png" alt="shiny app"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Objectives'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Projection'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='Plot Projection'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Drill-down'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
